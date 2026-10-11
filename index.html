@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>キメドキAI ｰ 家計安全チェック</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-light: #eff6ff;
+    --bg-main: #f8fafc;
+    --card-bg: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --safe: #22c55e;
+    --caution: #eab308;
+    --danger: #ef4444;
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background-color: var(--bg-main); color: var(--text-main); line-height: 1.5; padding: 12px; max-width: 600px; margin: 0 auto; }
+  
+  .intro-card { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .intro-title { font-size: 1.2rem; font-weight: bold; color: #1e40af; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .intro-desc { font-size: 0.85rem; color: #1e3a8a; margin-bottom: 8px; line-height: 1.4; }
+  
+  .privacy-banner { font-size: 0.72rem; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 6px 10px; border-radius: 6px; text-align: center; font-weight: bold; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  
+  .disclaimer-box { font-size: 0.73rem; color: #854d0e; background: #fefce8; border: 1px solid #fef08a; padding: 10px; border-radius: 8px; margin-bottom: 12px; line-height: 1.4; }
+
+  .storage-bar { display: flex; gap: 6px; justify-content: flex-end; align-items: center; margin-bottom: 16px; background: #fff; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); }
+  .storage-btn { padding: 5px 8px; font-size: 0.75rem; font-weight: bold; border-radius: 6px; border: 1px solid var(--border-color); background: #f8fafc; color: var(--text-main); cursor: pointer; white-space: nowrap; }
+  .storage-btn.save { background: #eff6ff; color: var(--primary); border-color: #bfdbfe; }
+  .storage-btn.reset { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
+
+  .card { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+  .card-title { font-size: 1.05rem; font-weight: bold; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--primary-light); display: flex; align-items: center; justify-content: space-between; }
+  .badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; background: var(--primary-light); color: var(--primary); font-weight: bold; }
+  
+  .field-group { margin-bottom: 16px; }
+  label { font-size: 0.85rem; font-weight: 600; color: #334155; display: block; margin-bottom: 4px; }
+  .slider-val { float: right; font-weight: bold; color: var(--primary); font-size: 0.95rem; }
+  
+  input[type="range"] { width: 100%; height: 6px; background: #cbd5e1; border-radius: 3px; outline: none; margin: 8px 0; }
+  
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .target-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+  .home-type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 12px; }
+  
+  .toggle-btn { padding: 10px 4px; border: 1px solid var(--border-color); background: #fff; border-radius: 8px; font-weight: bold; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; text-align: center; line-height: 1.3; letter-spacing: -0.2px; }
+  .toggle-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  
+  .loan-panel, .pay-method-container, .replace-panel, .funding-panel { background: #f1f5f9; padding: 12px; border-radius: 8px; margin-top: 10px; }
+  .loan-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .input-text { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; }
+
+  .live-result-box { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; margin-top: 10px; }
+  .live-signal { font-size: 0.95rem; font-weight: bold; display: flex; align-items: center; gap: 4px; }
+
+  .action-btn { width: 100%; padding: 14px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+
+  /* 結果画面スタイル */
+  #resultView { display: none; }
+  .result-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-color); }
+  
+  .pillar-box { background: #f8fafc; border-left: 4px solid var(--primary); padding: 12px; border-radius: 0 8px 8px 0; margin-bottom: 12px; transition: border-color 0.2s; }
+  .pillar-box.safe { border-left-color: var(--safe); }
+  .pillar-box.caution { border-left-color: var(--caution); }
+  .pillar-box.danger { border-left-color: var(--danger); }
+  
+  .pillar-title { font-weight: bold; font-size: 0.95rem; color: #1e293b; margin-bottom: 6px; }
+  .pillar-desc { font-size: 0.85rem; color: #334155; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- 入力画面ビュー -->
+<div id="inputView">
+  <div class="intro-card">
+    <div class="intro-title">
+      🎯 キメドキAI
+      <span style="font-size:0.75rem; background:#2563eb; color:#fff; padding:2px 8px; border-radius:10px;">家計安全チェック</span>
+    </div>
+    <div class="intro-desc">車・住宅の購入や高額投資など、大きな買い物で迷ったときに、家計のバランスを簡単に確認できます。</div>
+  </div>
+
+  <div class="privacy-banner">
+    🔒 入力データはサーバーへ保存されず、個人情報とも紐づきません
+  </div>
+
+  <div class="storage-bar">
+    <span style="font-size: 0.75rem; color: var(--text-muted); margin-right: auto; white-space: nowrap;">データ保持:</span>
+    <button type="button" class="storage-btn save" onclick="saveToLocalStorage(true)">💾 保存する</button>
+    <button type="button" class="storage-btn" onclick="loadFromLocalStorage(true)">🔄 復元する</button>
+    <button type="button" class="storage-btn reset" onclick="resetData()">🗑️ リセット</button>
+  </div>
+
+  <form id="checkForm" onsubmit="event.preventDefault(); showResults();">
+
+    <!-- ゾーン1：検討対象 -->
+    <div class="card">
+      <div class="card-title">
+        1. 検討対象（何を買うか）
+        <span class="badge">対象</span>
+      </div>
+
+      <label>購入カテゴリー（1つ選択）</label>
+      <div class="target-grid">
+        <div class="toggle-btn active" id="catHome" onclick="selectCategory('home')">🏠 住宅</div>
+        <div class="toggle-btn" id="catCar" onclick="selectCategory('car')">🚗 車・動産</div>
+        <div class="toggle-btn" id="catInvest" onclick="selectCategory('invest')">📈 株式・投信</div>
+        <div class="toggle-btn" id="catCrypto" onclick="selectCategory('crypto')">₿ 暗号資産</div>
+        <div class="toggle-btn" id="catOther" onclick="selectCategory('other')">📦 その他</div>
+      </div>
+
+      <!-- 住宅購入パターン -->
+      <div id="homeTypeContainer" style="margin-top: 12px;">
+        <label>購入パターン</label>
+        <div class="home-type-grid">
+          <div class="toggle-btn active" id="buyHomeRent" onclick="selectHomeType('rent')">🏢 賃賃から購入</div>
+          <div class="toggle-btn" id="buyHomeReplace" onclick="selectHomeType('replace')">🔄 持ち家買い替え</div>
+          <div class="toggle-btn" id="buyHomeAdd" onclick="selectHomeType('add')">➕ 持ち家買い増し</div>
+        </div>
+      </div>
+
+      <!-- 車の購入パターン -->
+      <div id="carTypeContainer" style="margin-top: 12px; display: none;">
+        <label>購入パターン</label>
+        <div class="btn-grid" style="margin-bottom: 0;">
+          <div class="toggle-btn active" id="buyCarNew" onclick="selectCarType('new')">🆕 新規購入</div>
+          <div class="toggle-btn" id="buyCarReplace" onclick="selectCarType('replace')">🔄 下取り・買い替え</div>
+        </div>
+      </div>
+
+      <!-- 買い替え時の売却設定パネル -->
+      <div class="replace-panel" id="replacePanel" style="display: none;">
+        <label style="font-size: 0.8rem; margin-bottom: 6px; color: #1e40af;" id="replacePanelTitle">今所有しているものの売却・下取り予想</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div>
+            <span style="font-size:0.7rem; color:#64748b;">売却・下取り予想額 (万円)</span>
+            <input type="number" id="replaceSellPrice" class="input-text" value="3000" oninput="updateCalculation()">
+          </div>
+          <div>
+            <span style="font-size:0.7rem; color:#64748b;">残っているローン (万円)</span>
+            <input type="number" id="replaceDebt" class="input-text" value="2000" oninput="updateCalculation()">
+          </div>
+        </div>
+        <div style="font-size: 0.75rem; font-weight: bold; color: var(--primary); margin-top: 6px;" id="netReplaceVal">
+          手元に残る現金（頭金等に活用）: 1,000万円
+        </div>
+      </div>
+
+      <!-- 支払い方法 -->
+      <div class="pay-method-container" id="payMethodContainer" style="margin-top: 12px;">
+        <label>支払い方法</label>
+        <div class="btn-grid" style="margin-bottom: 0;">
+          <div class="toggle-btn" id="typeLump" onclick="selectPayType('lump')">💰 現金一括</div>
+          <div class="toggle-btn active" id="typeLoan" onclick="selectPayType('loan')">💳 住宅ローン</div>
+        </div>
+      </div>
+
+      <div class="field-group" style="margin-top: 14px;">
+        <label>検討金額 <span class="slider-val" id="targetAmountVal">6,000万円</span></label>
+        <input type="range" id="targetAmount" min="100" max="20000" step="100" value="6000" oninput="updateTargetVal(this.value)">
+      </div>
+
+      <!-- ローン詳細設定 -->
+      <div class="loan-panel" id="loanPanel" style="display: block;">
+        <label style="font-size: 0.8rem; margin-bottom: 8px;">ローン設定</label>
+        <div class="loan-grid">
+          <div>
+            <span style="font-size:0.7rem; color:#64748b;">金利 (%)</span>
+            <input type="number" id="loanRate" class="input-text" value="1.0" step="0.1" oninput="updateCalculation()">
+          </div>
+          <div>
+            <span style="font-size:0.7rem; color:#64748b;">期間 (年)</span>
+            <input type="number" id="loanYears" class="input-text" value="35" oninput="updateCalculation()">
+          </div>
+          <div>
+            <span style="font-size:0.7rem; color:#64748b;">頭金 (万円)</span>
+            <input type="number" id="loanDown" class="input-text" value="500" oninput="updateCalculation()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ゾーン2：検討材料 -->
+    <div class="card">
+      <div class="card-title">
+        2. 検討材料（今の家計と資産）
+        <span class="badge">家計</span>
+      </div>
+
+      <div class="field-group">
+        <label>毎月の安定収入（手取り） <span class="slider-val" id="incomeVal">50万円</span></label>
+        <input type="range" id="incomeRange" min="0" max="200" step="5" value="50" oninput="updateCalculation()">
+      </div>
+
+      <div class="field-group">
+        <label>年間ボーナス・臨時収入（手取り） <span class="slider-val" id="bonusVal">100万円</span></label>
+        <input type="range" id="bonusRange" min="0" max="1000" step="10" value="100" oninput="updateCalculation()">
+      </div>
+
+      <div class="field-group">
+        <label>毎月の平均生活費（住居費を除く） <span class="slider-val" id="expenseVal">20万円</span></label>
+        <input type="range" id="expenseRange" min="0" max="120" step="1" value="20" oninput="updateCalculation()">
+      </div>
+
+      <div class="field-group" id="currentRentGroup">
+        <label>現在の住居費・家賃（毎月） <span class="slider-val" id="currentRentVal">12万円</span></label>
+        <input type="range" id="currentRentRange" min="0" max="120" step="1" value="12" oninput="updateCalculation()">
+        <span style="font-size: 0.72rem; color: var(--text-muted);" id="currentRentDesc">※ 賃貸購入・持ち家買い替えの場合は、この費用が消滅して新居に置き換わります</span>
+      </div>
+
+      <div class="field-group" style="margin-top: 14px;">
+        <label>保有現預金（すぐ使えるお金） <span class="slider-val" id="cashVal">1,000万円</span></label>
+        <input type="range" id="cashRange" min="0" max="3000" step="50" value="1000" oninput="updateCalculation()">
+      </div>
+
+      <div class="field-group">
+        <label>その他の保有資産（株式・暗号資産・時計・金等） <span class="slider-val" id="investVal">500万円</span></label>
+        <input type="range" id="investRange" min="0" max="3000" step="50" value="500" oninput="updateCalculation()">
+      </div>
+
+      <!-- 保有資産からの充当額 -->
+      <div class="funding-panel" id="fundingPanel">
+        <label style="font-size: 0.8rem; color: #1e40af;">保有資産（株・暗号資産等）からの充当額</label>
+        <div style="margin-top: 4px;">
+          <label style="font-size:0.75rem; color:#64748b;">今回の購入資金・頭金に充てる額 <span class="slider-val" id="sellInvestVal">0万円</span></label>
+          <input type="range" id="sellInvestRange" min="0" max="3000" step="5" value="0" oninput="updateCalculation()">
+          <span style="font-size: 0.7rem; color: var(--text-muted);">※ 売却充当額分だけ現預金からの持ち出しを抑えられます</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ゾーン3：判断スタンス -->
+    <div class="card">
+      <div class="card-title">3. 判断スタンス（検証の厳しさ）</div>
+      <div class="field-group" style="margin-bottom: 8px;">
+        <label>検証レベル（慎重 ⇄ 楽観） <span class="slider-val" id="stanceValText">バランス</span></label>
+        <input type="range" id="stanceSlider" min="0" max="100" step="1" value="50" oninput="updateCalculation()">
+      </div>
+      
+      <div class="live-result-box">
+        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">目安:</span>
+        <div class="live-signal" id="liveSignal">🔵 安全域</div>
+      </div>
+    </div>
+
+    <button type="submit" class="action-btn">判定結果を確認する</button>
+
+  </form>
+</div>
+
+<!-- 結果画面ビュー -->
+<div id="resultView">
+  
+  <div class="disclaimer-box">
+    ⚠️ <b>ご利用にあたっての注意点（免責事項）</b><br>
+    本ツールの計算結果は入力内容に基づく試算であり、実際の融資や将来における家計の安全を保証するものではありません。高額な意思決定を行う際は、ファイナンシャルプランナーや専門家にご相談ください。本ツールのご利用により生じたいかなる損害・補償についても責任を負いかねます。
+  </div>
+
+  <div class="intro-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-color: #bbf7d0;">
+    <div class="intro-title" style="color: #166534;">
+      ✨ 検証結果レポート
+    </div>
+    <div class="intro-desc" style="color: #14532d;">家計のバランスを考えた判定結果です。判定理由とリスクの検証ポイントをご確認ください。</div>
+  </div>
+
+  <div class="result-card">
+    <div style="font-size: 1.05rem; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+      <div>
+        <span>総合判定</span>
+        <span id="resultStanceBadge" style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted); background: #f1f5f9; padding: 2px 8px; border-radius: 6px; margin-left: 4px;">（検証レベル：バランス）</span>
+      </div>
+      <span id="resultBadge" style="padding: 4px 12px; border-radius: 16px; font-size: 0.9rem; color: #fff; background: var(--safe);">🔵 安全域</span>
+    </div>
+    
+    <div class="pillar-box" id="boxMerits">
+      <div class="pillar-title">1. 毎月のやりくり（生活のゆとりはある？）</div>
+      <div class="pillar-desc" id="resMerits"></div>
+    </div>
+
+    <div class="pillar-box" id="boxLiquidity">
+      <div class="pillar-title">2. 手元のお金（万が一の備えは大丈夫？）</div>
+      <div class="pillar-desc" id="resLiquidity"></div>
+    </div>
+
+    <div class="pillar-box" id="boxResilience">
+      <div class="pillar-title">3. ピンチへの強さ（最悪の事態でも耐えられる？）</div>
+      <div class="pillar-desc" id="resResilience"></div>
+    </div>
+  </div>
+
+  <button type="button" class="action-btn" style="background: #64748b;" onclick="backToInput()">✏️ 入力内容を修正して再判定する</button>
+</div>
+
+<script>
+  let currentPayType = 'loan';
+  let currentCategory = 'home';
+  let currentHomeType = 'rent';
+  let currentCarType = 'new';
+
+  const sliderLimits = {
+    home: 20000,
+    car: 2000,
+    invest: 1000,
+    crypto: 1000,
+    other: 1000
+  };
+
+  const categoryDefaults = {
+    home: { target: 6000, sellPrice: 3000, debt: 2000, rate: 1.0, years: 35, down: 500 },
+    car: { target: 500, sellPrice: 150, debt: 50, rate: 4.0, years: 5, down: 100 },
+    invest: { target: 300, sellPrice: 0, debt: 0, rate: 0, years: 0, down: 0 },
+    crypto: { target: 100, sellPrice: 0, debt: 0, rate: 0, years: 0, down: 0 },
+    other: { target: 200, sellPrice: 0, debt: 0, rate: 0, years: 0, down: 0 }
+  };
+
+  function selectCategory(cat) {
+    currentCategory = cat;
+    ['home', 'car', 'invest', 'crypto', 'other'].forEach(c => {
+      document.getElementById('cat' + c.charAt(0).toUpperCase() + c.slice(1)).classList.remove('active');
+    });
+    document.getElementById('cat' + cat.charAt(0).toUpperCase() + cat.slice(1)).classList.add('active');
+    
+    const homeTypeContainer = document.getElementById('homeTypeContainer');
+    const carTypeContainer = document.getElementById('carTypeContainer');
+    const replacePanel = document.getElementById('replacePanel');
+    const payContainer = document.getElementById('payMethodContainer');
+    const loanPanel = document.getElementById('loanPanel');
+    const typeLoanBtn = document.getElementById('typeLoan');
+    const currentRentDesc = document.getElementById('currentRentDesc');
+
+    const defaults = categoryDefaults[cat];
+    document.getElementById('replaceSellPrice').value = defaults.sellPrice;
+    document.getElementById('replaceDebt').value = defaults.debt;
+
+    document.getElementById('loanRate').value = defaults.rate;
+    document.getElementById('loanYears').value = defaults.years;
+    document.getElementById('loanDown').value = defaults.down;
+
+    if (cat === 'home') {
+      homeTypeContainer.style.display = 'block';
+      carTypeContainer.style.display = 'none';
+      payContainer.style.display = 'block';
+      typeLoanBtn.innerText = "💳 住宅ローン";
+      replacePanel.style.display = currentHomeType === 'replace' ? 'block' : 'none';
+      selectPayType('loan');
+      currentRentDesc.innerText = currentHomeType === 'add' ? "※ 買い増しのため、現在の住居費もそのまま継続して支払います" : "※ 賃貸購入・持ち家買い替えの場合は、この費用が消滅して新居に置き換わります";
+    } else if (cat === 'car') {
+      homeTypeContainer.style.display = 'none';
+      carTypeContainer.style.display = 'block';
+      payContainer.style.display = 'block';
+      typeLoanBtn.innerText = "💳 ローン / 残クレ";
+      replacePanel.style.display = currentCarType === 'replace' ? 'block' : 'none';
+      selectPayType('loan');
+      currentRentDesc.innerText = "※ 現在かかっている住居費（家賃・ローン）です";
+    } else {
+      homeTypeContainer.style.display = 'none';
+      carTypeContainer.style.display = 'none';
+      replacePanel.style.display = 'none';
+      payContainer.style.display = 'none';
+      loanPanel.style.display = 'none';
+      currentPayType = 'lump';
+      currentRentDesc.innerText = "※ 現在かかっている住居費（家賃・ローン）です";
+    }
+    
+    adjustTargetSliderLimits(defaults.target);
+  }
+
+  function selectHomeType(type) {
+    currentHomeType = type;
+    ['rent', 'replace', 'add'].forEach(t => {
+      document.getElementById('buyHome' + t.charAt(0).toUpperCase() + t.slice(1)).classList.remove('active');
+    });
+    document.getElementById('buyHome' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
+    
+    document.getElementById('replacePanel').style.display = type === 'replace' ? 'block' : 'none';
+    
+    const currentRentDesc = document.getElementById('currentRentDesc');
+    if (type === 'add') {
+      currentRentDesc.innerText = "※ 買い増しのため、現在の住居費もそのまま継続して支払います（二重ローン）";
+    } else {
+      currentRentDesc.innerText = "※ 賃貸購入・持ち家買い替えの場合は、この費用が消滅して新居に置き換わります";
+    }
+
+    updateCalculation();
+  }
+
+  function selectCarType(type) {
+    currentCarType = type;
+    if (type === 'replace') {
+      document.getElementById('buyCarReplace').classList.add('active');
+      document.getElementById('buyCarNew').classList.remove('active');
+      document.getElementById('replacePanel').style.display = 'block';
+    } else {
+      document.getElementById('buyCarNew').classList.add('active');
+      document.getElementById('buyCarReplace').classList.remove('active');
+      document.getElementById('replacePanel').style.display = 'none';
+    }
+    updateCalculation();
+  }
+
+  function selectPayType(type) {
+    currentPayType = type;
+    const loanPanel = document.getElementById('loanPanel');
+    
+    if (type === 'lump') {
+      document.getElementById('typeLump').classList.add('active');
+      document.getElementById('typeLoan').classList.remove('active');
+      loanPanel.style.display = 'none';
+    } else {
+      document.getElementById('typeLoan').classList.add('active');
+      document.getElementById('typeLump').classList.remove('active');
+      loanPanel.style.display = 'block';
+    }
+    
+    adjustTargetSliderLimits();
+  }
+
+  function adjustTargetSliderLimits(forceVal = null) {
+    const slider = document.getElementById('targetAmount');
+    let maxVal = sliderLimits[currentCategory];
+
+    slider.max = maxVal;
+    slider.step = maxVal >= 20000 ? "100" : (maxVal >= 2000 ? "50" : "10");
+
+    if (forceVal !== null) {
+      slider.value = forceVal;
+    } else if (parseInt(slider.value) > maxVal) {
+      slider.value = maxVal;
+    }
+    updateTargetVal(slider.value);
+  }
+
+  function updateTargetVal(val) {
+    let text = val >= 10000 ? (val / 10000).toFixed(1) + "億円" : val + "万円";
+    document.getElementById('targetAmountVal').innerText = text;
+    updateCalculation();
+  }
+
+  function updateCalculation() {
+    const income = parseInt(document.getElementById('incomeRange').value);
+    const bonus = parseInt(document.getElementById('bonusRange').value);
+    const expense = parseInt(document.getElementById('expenseRange').value);
+    const currentRent = parseInt(document.getElementById('currentRentRange').value);
+    const cash = parseInt(document.getElementById('cashRange').value);
+    const invest = parseInt(document.getElementById('investRange').value);
+    const targetAmount = parseInt(document.getElementById('targetAmount').value);
+    const stance = parseInt(document.getElementById('stanceSlider').value);
+
+    const isFinancialInvest = (currentCategory === 'invest' || currentCategory === 'crypto');
+
+    const sellInvestRange = document.getElementById('sellInvestRange');
+    sellInvestRange.max = invest;
+    const sellInvestAmount = parseInt(sellInvestRange.value || 0);
+
+    let stanceLabel = "";
+    if (stance <= 20) stanceLabel = "超保守的";
+    else if (stance <= 40) stanceLabel = "慎重";
+    else if (stance <= 60) stanceLabel = "バランス";
+    else if (stance <= 80) stanceLabel = "楽観";
+    else stanceLabel = "超楽観";
+    document.getElementById('stanceValText').innerText = stanceLabel;
+
+    document.getElementById('incomeVal').innerText = income + '万円';
+    document.getElementById('bonusVal').innerText = bonus + '万円';
+    document.getElementById('expenseVal').innerText = expense + '万円';
+    document.getElementById('currentRentVal').innerText = currentRent + '万円';
+    document.getElementById('cashVal').innerText = cash.toLocaleString() + '万円';
+    document.getElementById('investVal').innerText = invest.toLocaleString() + '万円';
+    document.getElementById('sellInvestVal').innerText = sellInvestAmount + '万円';
+
+    let netReplaceCash = 0;
+    const isReplace = (currentCategory === 'home' && currentHomeType === 'replace') || (currentCategory === 'car' && currentCarType === 'replace');
+    if (isReplace) {
+      const sellPrice = parseInt(document.getElementById('replaceSellPrice').value || 0);
+      const replaceDebt = parseInt(document.getElementById('replaceDebt').value || 0);
+      netReplaceCash = sellPrice - replaceDebt;
+      document.getElementById('netReplaceVal').innerText = "手元に残る現金（または補填額）: " + (netReplaceCash >= 10000 ? (netReplaceCash/10000).toFixed(1) + '億円' : netReplaceCash + '万円');
+    }
+
+    let initialCashOutflow = 0;
+    let monthlyLoanRepayment = 0;
+
+    if (currentPayType === 'loan') {
+      const rate = parseFloat(document.getElementById('loanRate').value || 1.0) / 100 / 12;
+      const years = parseInt(document.getElementById('loanYears').value || 35) * 12;
+      const down = parseInt(document.getElementById('loanDown').value || 0);
+      const principal = Math.max(0, targetAmount - down);
+
+      if (rate > 0 && years > 0) {
+        monthlyLoanRepayment = (principal * rate * Math.pow(1 + rate, years)) / (Math.pow(1 + rate, years) - 1);
+      } else {
+        monthlyLoanRepayment = principal / (years || 1);
+      }
+      initialCashOutflow = down;
+    } else {
+      initialCashOutflow = targetAmount;
+    }
+
+    const cashOutFromSavings = Math.max(0, initialCashOutflow - sellInvestAmount);
+    const remainingCash = cash + (isReplace ? netReplaceCash : 0) - cashOutFromSavings;
+
+    const totalAssetBefore = cash + invest;
+    const totalRiskAssetAfter = (isFinancialInvest ? (invest + targetAmount - sellInvestAmount) : invest);
+    const riskAssetRatio = totalAssetBefore > 0 ? (totalRiskAssetAfter / totalAssetBefore) : 0;
+
+    let netMonthlyIncome = 0;
+    if (currentCategory === 'home' && (currentHomeType === 'rent' || currentHomeType === 'replace')) {
+      netMonthlyIncome = income - expense - monthlyLoanRepayment; 
+    } else {
+      netMonthlyIncome = income - expense - currentRent - monthlyLoanRepayment; 
+    }
+
+    const emergencyFundRent = (currentCategory === 'home' && (currentHomeType === 'rent' || currentHomeType === 'replace')) ? monthlyLoanRepayment : currentRent;
+    
+    const targetFundMonths = 12 - (stance / 100) * 10.5;
+    const targetMonthlyMargin = 25 - (stance / 100) * 25;
+
+    const emergencyFundRequired = (expense + emergencyFundRent) * targetFundMonths;
+
+    // --- 手元のお金 判定 ---
+    let liquidityStatus = 'safe';
+    let cashAdvice = "";
+
+    if (remainingCash < 0) {
+      liquidityStatus = 'danger';
+      cashAdvice = isFinancialInvest 
+        ? `⚠️ <b>手元のお金が足りなくなります：</b> 買い付けの手出し額が今の預金を上回り、預金がマイナスになります。購入額を抑えるか、無理のない金額から始めましょう。`
+        : `⚠️ <b>手元のお金が足りなくなります：</b> 手出し額が現在の預金を上回り、預金がマイナスになります。頭金を減らすか、ローンの活用を検討してください。`;
+    } else if (remainingCash < emergencyFundRequired) {
+      liquidityStatus = 'caution';
+      if (stance <= 40) {
+        cashAdvice = `⚠️ <b>慎重に見ると、万が一の蓄えが少し物足りないかも：</b> 「慎重派」の目線（ゆとりのある蓄え）で検証すると、購入後の預金にやや不安が残ります。予期せぬ急な出費に備えて、もう少し手元を厚く残せると安心です！`;
+      } else {
+        cashAdvice = `⚠️ <b>いざという時のお金がちょっと心配：</b> 買った後に残る預金が少し少なめで、何かあった時の蓄えを下回りそうです。もう少し手元に残せるプランを検討してみましょう！`;
+      }
+    } else {
+      cashAdvice = isFinancialInvest
+        ? `✅ 買い付け後もしっかり預金が残ります！急な出費や「いざという時のお金」もちゃんと確保できているのでバッチリです。`
+        : `✅ 買った後もしっかり預金が残ります！急な出費や「いざという時のお金」もちゃんと確保できているのでバッチリです。`;
+    }
+
+    // --- 毎月のやりくり 判定 ---
+    let monthlyStatus = 'safe';
+    let monthlyAdvice = "";
+
+    if (isFinancialInvest) {
+      monthlyAdvice = `✅ まとめて買い付けるプランなので、毎月のやりくりに新しい支払いは増えません。今の黒字ペースをそのままキープできます！`;
+    } else if (currentPayType === 'lump') {
+      monthlyAdvice = `✅ 現金一括で買うプランなので、毎月の支払いは増えません！今のやりくりのままで大丈夫です。`;
+    } else {
+      if (netMonthlyIncome < 0) {
+        monthlyStatus = 'danger';
+        monthlyAdvice = `⚠️ <b>毎月赤字になっちゃうかも：</b> 新しい支払いが重くて毎月のやりくりが苦しくなりそうです。返済額や固定費を見直してみるのがおすすめです！`;
+      } else if (netMonthlyIncome < targetMonthlyMargin) {
+        monthlyStatus = 'caution';
+        if (stance <= 40) {
+          monthlyAdvice = `⚠️ <b>慎重に見ると、毎月のゆとりが物足りないかも：</b> 「慎重派」の観点（しっかりとした毎月の手残り）に対して、購入後の残額が少なめです。金利上昇や不測の支出に備え、もう少し黒字幅に余裕を持たせたいところです。`;
+        } else {
+          monthlyAdvice = `⚠️ <b>毎月のゆとりがギリギリかも：</b> 毎月手元に残るお金が少なめです。急な出費や将来の金利アップに備えて、もう少しゆとりを持たせると安心です！`;
+        }
+      } else {
+        monthlyAdvice = `✅ 毎月の生活費や返済を払っても、しっかり手元にお金が残ります！無理なく続けられるグッドなバランスです。`;
+      }
+    }
+
+    // --- ピンチへの強さ 判定 ---
+    let resilienceStatus = 'safe';
+    let resilienceComment = "";
+
+    if (isFinancialInvest) {
+      const riskRatioLimit = 0.8 - (stance / 100) * 0.4;
+      if (riskAssetRatio >= riskRatioLimit) {
+        resilienceStatus = 'caution';
+        resilienceComment = stance <= 40 
+          ? `⚠️ <b>慎重派としては一気に買いすぎかも：</b> 保有資産の多くをリスク資産へ一気に配分する計画になっています。値下がりした時のダメージが大きいので、少しずつ分けて買う（積み立てる）ことをおすすめします！`
+          : `⚠️ <b>一気に買いすぎるかも：</b> 資産の大部分を一度に投じるプランになっています。値下がりした時のダメージが大きいので、少しずつ分けて買う（積み立てる）か金額を調整するとより安心です！`;
+      } else {
+        resilienceComment = `✅ <b>値下がりにも落ち着いて耐えられます：</b> 手元のお金もしっかり残っていて、投資への回し方にもゆとりがあります。相場が揺れても慌てずに見守れます！`;
+      }
+    } else {
+      if (currentPayType === 'lump') {
+        resilienceComment = `✅ <b>金利の波が来ても平気です：</b> 一括で払うので、今後の金利が上がっても影響はありません！手元のお金さえ守れていればピンチにも強いです。`;
+      } else if (liquidityStatus === 'safe' && monthlyStatus === 'safe') {
+        resilienceComment = `✅ <b>突発的なピンチにも強い家計です：</b> 手元に残るお金と毎月のゆとりの両方がちゃんとあるので、金利上昇や急な出費があっても崩れにくい良好な状態です！`;
+      } else {
+        resilienceStatus = 'caution';
+        resilienceComment = `⚠️ <b>もしもの時に少しヒヤッとするかも：</b> 預金や毎月の黒字幅に余裕が少ないため、収入減少や金利上昇などのアクシデントが起きた際に家計が圧迫されやすい状態です。頭金などを調整して安全域を広げましょう！`;
+      }
+    }
+
+    if (sellInvestAmount > 0) {
+      resilienceComment += `<br><br>💡 <b>持っている資産を使うポイント：</b><br>株などを売ってあてることで現金の減りを抑えられます！売る時の税金や「これからもっておけば増えたかも？」という視点だけ頭の片隅に置いておきましょう。`;
+    }
+
+    // 総合判定ロジック
+    let dangerCount = (liquidityStatus === 'danger' ? 1 : 0) + (monthlyStatus === 'danger' ? 1 : 0);
+    let cautionCount = (liquidityStatus === 'caution' ? 1 : 0) + (monthlyStatus === 'caution' ? 1 : 0) + (resilienceStatus === 'caution' ? 1 : 0);
+
+    let overall = 'safe';
+    if (dangerCount >= 1) {
+      overall = 'danger';
+    } else if (cautionCount >= 1) {
+      overall = 'caution';
+    } else {
+      overall = 'safe';
+    }
+
+    const signalElem = document.getElementById('liveSignal');
+    const badgeElem = document.getElementById('resultBadge');
+    const stanceBadgeElem = document.getElementById('resultStanceBadge');
+
+    if (stanceBadgeElem) {
+      stanceBadgeElem.innerText = `（検証レベル：${stanceLabel}）`;
+    }
+
+    if (overall === 'safe') {
+      signalElem.innerHTML = "🔵 安全域";
+      signalElem.style.color = "var(--safe)";
+      badgeElem.innerHTML = "🔵 安全域";
+      badgeElem.style.background = "var(--safe)";
+    } else if (overall === 'caution') {
+      signalElem.innerHTML = "🟡 要注意";
+      signalElem.style.color = "var(--caution)";
+      badgeElem.innerHTML = "🟡 要注意";
+      badgeElem.style.background = "var(--caution)";
+    } else {
+      signalElem.innerHTML = "🔴 危険域";
+      signalElem.style.color = "var(--danger)";
+      badgeElem.innerHTML = "🔴 危険域";
+      badgeElem.style.background = "var(--danger)";
+    }
+
+    window.dynamicResults = {
+      overall,
+      cashAdvice,
+      monthlyAdvice,
+      resilienceComment,
+      liquidityStatus,
+      monthlyStatus,
+      resilienceStatus
+    };
+  }
+
+  function saveToLocalStorage(alertUser = false) {
+    const data = {
+      currentCategory,
+      currentPayType,
+      currentHomeType,
+      currentCarType,
+      replaceSellPrice: document.getElementById('replaceSellPrice').value,
+      replaceDebt: document.getElementById('replaceDebt').value,
+      targetAmount: document.getElementById('targetAmount').value,
+      loanRate: document.getElementById('loanRate').value,
+      loanYears: document.getElementById('loanYears').value,
+      loanDown: document.getElementById('loanDown').value,
+      sellInvestRange: document.getElementById('sellInvestRange').value,
+      income: document.getElementById('incomeRange').value,
+      bonus: document.getElementById('bonusRange').value,
+      expense: document.getElementById('expenseRange').value,
+      currentRent: document.getElementById('currentRentRange').value,
+      cash: document.getElementById('cashRange').value,
+      invest: document.getElementById('investRange').value,
+      stance: document.getElementById('stanceSlider').value
+    };
+    localStorage.setItem('kimedoki_data', JSON.stringify(data));
+    if (alertUser) alert("入力内容を端末に保存しました！");
+  }
+
+  function loadFromLocalStorage(alertUser = false) {
+    const saved = localStorage.getItem('kimedoki_data');
+    if (!saved) {
+      if (alertUser) alert("保存されたデータがありません。");
+      return;
+    }
+    try {
+      const data = JSON.parse(saved);
+      if (data.currentCategory) selectCategory(data.currentCategory);
+      if (data.currentHomeType) selectHomeType(data.currentHomeType);
+      if (data.currentCarType) selectCarType(data.currentCarType);
+      if (data.currentPayType) selectPayType(data.currentPayType);
+      if (data.replaceSellPrice) document.getElementById('replaceSellPrice').value = data.replaceSellPrice;
+      if (data.replaceDebt) document.getElementById('replaceDebt').value = data.replaceDebt;
+      if (data.targetAmount) {
+        document.getElementById('targetAmount').value = data.targetAmount;
+        updateTargetVal(data.targetAmount);
+      }
+      if (data.loanRate) document.getElementById('loanRate').value = data.loanRate;
+      if (data.loanYears) document.getElementById('loanYears').value = data.loanYears;
+      if (data.loanDown) document.getElementById('loanDown').value = data.loanDown;
+      if (data.income) document.getElementById('incomeRange').value = data.income;
+      if (data.bonus) document.getElementById('bonusRange').value = data.bonus;
+      if (data.expense) document.getElementById('expenseRange').value = data.expense;
+      if (data.currentRent) document.getElementById('currentRentRange').value = data.currentRent;
+      if (data.cash) document.getElementById('cashRange').value = data.cash;
+      if (data.invest) document.getElementById('investRange').value = data.invest;
+      if (data.sellInvestRange) document.getElementById('sellInvestRange').value = data.sellInvestRange;
+      if (data.stance) document.getElementById('stanceSlider').value = data.stance;
+      updateCalculation();
+      if (alertUser) alert("保存されたデータを復元しました！");
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
+  function resetData() {
+    if (confirm("入力内容をリセットしてもよろしいですか？")) {
+      localStorage.removeItem('kimedoki_data');
+      location.reload();
+    }
+  }
+
+  function showResults() {
+    updateCalculation();
+    const res = window.dynamicResults;
+
+    const badge = document.getElementById('resultBadge');
+    badge.innerHTML = document.getElementById('liveSignal').innerHTML;
+    badge.style.background = res.overall === 'safe' ? 'var(--safe)' : (res.overall === 'caution' ? 'var(--caution)' : 'var(--danger)');
+
+    document.getElementById('resLiquidity').innerHTML = res.cashAdvice;
+    document.getElementById('resMerits').innerHTML = res.monthlyAdvice;
+    document.getElementById('resResilience').innerHTML = res.resilienceComment;
+
+    const boxLiquidity = document.getElementById('boxLiquidity');
+    boxLiquidity.className = 'pillar-box ' + res.liquidityStatus;
+
+    const boxMerits = document.getElementById('boxMerits');
+    boxMerits.className = 'pillar-box ' + res.monthlyStatus;
+
+    const boxResilience = document.getElementById('boxResilience');
+    boxResilience.className = 'pillar-box ' + res.resilienceStatus;
+
+    document.getElementById('inputView').style.display = 'none';
+    document.getElementById('resultView').style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
+  function backToInput() {
+    document.getElementById('resultView').style.display = 'none';
+    document.getElementById('inputView').style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
+  window.onload = function() {
+    selectCategory('home');
+  };
+</script>
+
+</body>
+</html>
