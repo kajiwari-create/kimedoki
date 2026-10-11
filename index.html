@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-5X5X7HC2YL"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-5X5X7HC2YL');
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>キメドキAI ｰ 家計安全チェック</title>
@@ -118,7 +127,7 @@
       <div id="homeTypeContainer" style="margin-top: 12px;">
         <label>購入パターン</label>
         <div class="home-type-grid">
-          <div class="toggle-btn active" id="buyHomeRent" onclick="selectHomeType('rent')">🏢 賃賃から購入</div>
+          <div class="toggle-btn active" id="buyHomeRent" onclick="selectHomeType('rent')">🏢 賃貸から購入</div>
           <div class="toggle-btn" id="buyHomeReplace" onclick="selectHomeType('replace')">🔄 持ち家買い替え</div>
           <div class="toggle-btn" id="buyHomeAdd" onclick="selectHomeType('add')">➕ 持ち家買い増し</div>
         </div>
